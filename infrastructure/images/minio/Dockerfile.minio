@@ -1,0 +1,59 @@
+# File: Dockerfile.minio
+# Path: infrastructure/images/minio/Dockerfile.minio
+# Version: 10 
+# =============================================================================
+# OpenDocSeal MinIO - Object Storage Service
+# =============================================================================
+
+# Build arguments from .env.build with default values
+ARG MINIO_BASE_IMAGE=unknown
+ARG BUILD_DATE=unknown
+ARG BUILD_VERSION=unknown
+
+# Stage 1: Download mc client using alpine (has curl)
+FROM alpine:latest AS downloader
+RUN apk add --no-cache curl && \
+    curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /mc && \
+    chmod +x /mc
+
+# Stage 2: Final MinIO image
+FROM ${MINIO_BASE_IMAGE}
+
+# Add labels for metadata
+LABEL org.opencontainers.image.title="OpenDocSeal MinIO"
+LABEL org.opencontainers.image.description="Object storage service for document files"
+LABEL org.opencontainers.image.version="${BUILD_VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.source="https://github.com/opendocseal/opendocseal"
+LABEL org.opencontainers.image.vendor="OpenDocSeal"
+LABEL maintainer="OpenDocSeal Team"
+
+# Switch to root for setup
+USER root
+
+# Copy mc client from downloader stage
+COPY --from=downloader /mc /usr/local/bin/mc
+
+# Copy initialization scripts from real files
+COPY infrastructure/images/minio/init-scripts/ /docker-entrypoint.d/
+
+# Copy policy files
+RUN mkdir -p /opt/minio/policy
+COPY infrastructure/images/minio/policy/ /opt/minio/policy/
+
+# Set executable permissions on scripts
+RUN chmod +x /docker-entrypoint.d/*.sh
+
+# Create data directories (use root user, MinIO will handle user internally)
+RUN mkdir -p /data && \
+    chmod 755 /data /docker-entrypoint.d
+
+# Health check 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD mc --version > /dev/null || exit 1
+
+# Expose ports
+EXPOSE 9000 9001
+
+# Use the wrapper script instead of inline command
+ENTRYPOINT ["/docker-entrypoint.d/docker-entrypoint-wrapper.sh"]

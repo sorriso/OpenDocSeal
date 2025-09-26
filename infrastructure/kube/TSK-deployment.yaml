@@ -1,0 +1,135 @@
+# File: OpenDocSeal/infrastructure/kube/TSK-deployment.yaml
+# Version: 1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opendocseal-tsk-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opendocseal-tsk
+  template:
+    metadata:
+      labels:
+        app: opendocseal-tsk
+    spec:
+      containers:
+      - name: opendocseal-tsk
+        image: k8s.io/opendocseal_n8n:latest
+        imagePullPolicy: Never
+ 
+        ports:
+        - containerPort: 5678
+        
+        env:
+        - name: http_proxy
+          value: ""
+        - name: https_proxy
+          value: ""
+        - name: LOG_TO_STDOUT
+          value: "true"
+        - name: N8N_SECURE_COOKIE
+          value: "false"
+        - name: N8N_LOG_LEVEL
+          value: "info"
+        - name: N8N_LOG_OUTPUT
+          value: "file"
+        - name: N8N_LOG_FILE_LOCATION
+          value: "/var/log/n8n/"
+        - name: N8N_LOG_FILE_SIZE_MAX
+          value: "16"
+        - name: N8N_LOG_FILE_COUNT_MAX
+          value: "10"
+
+        - name: N8N_OWNER_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_OWNER_EMAIL
+        - name: N8N_OWNER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_OWNER_PASSWORD
+        - name: N8N_OWNER_FIRST_NAME
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_OWNER_FIRST_NAME
+        - name: N8N_OWNER_LAST_NAME
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_OWNER_LAST_NAME
+
+        - name: APP_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: APP_ACCESS_KEY
+        - name: APP_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: APP_SECRET_KEY
+        - name: BUCKET_NAME
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: BUCKET_NAME
+        - name: ENABLE_VERSIONING
+          value: "1"
+
+        - name: N8N_USER_MANAGEMENT_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_USER_MANAGEMENT_JWT_SECRET
+        - name: N8N_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_ENCRYPTION_KEY
+
+        volumeMounts:
+        - name: opendocseal-n8n-data
+          mountPath: /home/node/.n8n
+        - name: shared-logs
+          mountPath: /var/log/n8n
+          subPath: n8n
+
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "15m"
+
+        # CORRIGÉ: Health checks avec le bon path
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5678
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5678
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+      volumes:
+      - name: opendocseal-n8n-data
+        persistentVolumeClaim:
+          claimName: opendocseal-tsk-pvc
+      - name: shared-logs
+        persistentVolumeClaim:
+          claimName: opendocseal-logs-local-pvc

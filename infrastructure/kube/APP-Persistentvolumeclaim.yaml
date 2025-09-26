@@ -1,0 +1,14 @@
+# File: OpenDocSeal/infrastructure/kube/APP-PersistentVolumeClaim.yaml
+# Version: 1
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opendocseal-app-local-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+  volumeName: opendocseal-app-local-pv
+  storageClassName: ""

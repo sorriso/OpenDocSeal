@@ -1,0 +1,18 @@
+# File: OpenDocSeal/infrastructure/kube/RP-configmap.yaml
+# Version: 1
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opendocseal-rp-config
+data:
+  Caddyfile: |
+    :8000 {
+ 
+      # Route API : tout ce qui commence par /api/v1 est redirigé vers l'API FastAPI
+      route /api/v1/* {
+        reverse_proxy api-service.api-ns.svc.cluster.local:8000
+      }
+ 
+      # Tout le reste (/) est servi par le client HTML (SPA ou MPA)
+      reverse_proxy app-service.api-ns.svc.cluster.local:8001
+    }

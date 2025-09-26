@@ -1,0 +1,887 @@
+<!-- 
+File: document-card.html
+Path: infrastructure/source/frontend/components/document-card.html
+Version: 1
+-->
+<div class="document-card-component">
+    <!-- Standard Document Card -->
+    <div class="document-card" data-document-id="{DOCUMENT_ID}">
+        <div class="card-header">
+            <div class="document-icon">
+                <span class="file-icon">{FILE_ICON}</span>
+            </div>
+            <div class="document-title-section">
+                <h3 class="document-title">{DOCUMENT_NAME}</h3>
+                <span class="document-reference">Ref: {DOCUMENT_REFERENCE}</span>
+            </div>
+            <div class="document-status">
+                <span class="status-badge status-{STATUS_CLASS}">{STATUS_TEXT}</span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="document-metadata">
+                <div class="meta-row">
+                    <span class="meta-label">📅 Créé le:</span>
+                    <span class="meta-value">{CREATED_DATE}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">🔐 Hash:</span>
+                    <span class="meta-value hash-display" title="{FULL_HASH}">{TRUNCATED_HASH}...</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">📊 Taille:</span>
+                    <span class="meta-value">{FILE_SIZE}</span>
+                </div>
+                {DESCRIPTION_SECTION}
+            </div>
+
+            <!-- Metadata Toggle (if metadata exists) -->
+            <div class="metadata-toggle" data-has-metadata="{HAS_METADATA}">
+                <button type="button" class="toggle-button" onclick="documentCard.toggleMetadata('{DOCUMENT_ID}')">
+                    <span class="toggle-text">📋 Métadonnées ({METADATA_COUNT})</span>
+                    <span class="toggle-icon">▼</span>
+                </button>
+                <div class="metadata-content hidden" id="metadata-{DOCUMENT_ID}">
+                    <div class="metadata-list">
+                        {METADATA_ITEMS}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blockchain Status Section -->
+            <div class="blockchain-status">
+                <div class="blockchain-header">
+                    <span class="blockchain-label">⛓️ Statut Blockchain:</span>
+                    <span class="blockchain-status-badge {BLOCKCHAIN_STATUS_CLASS}">{BLOCKCHAIN_STATUS_TEXT}</span>
+                </div>
+                <div class="blockchain-details">
+                    {BLOCKCHAIN_DETAILS}
+                </div>
+            </div>
+        </div>
+
+        <div class="card-footer">
+            <div class="document-actions">
+                <button class="action-btn primary" onclick="documentCard.viewDetails('{DOCUMENT_ID}')" title="Voir les détails">
+                    👁️ <span class="btn-text">Détails</span>
+                </button>
+                <button class="action-btn secondary" onclick="documentCard.downloadDocument('{DOCUMENT_ID}')" title="Télécharger le document et sa preuve">
+                    💾 <span class="btn-text">Télécharger</span>
+                </button>
+                <button class="action-btn secondary" onclick="documentCard.copyHash('{FULL_HASH}')" title="Copier l'empreinte SHA256">
+                    📋 <span class="btn-text">Hash</span>
+                </button>
+                {BLOCKCHAIN_PROOF_BUTTON}
+                <div class="more-actions">
+                    <button class="action-btn tertiary" onclick="documentCard.toggleMoreActions('{DOCUMENT_ID}')" title="Plus d'actions">
+                        ⋯
+                    </button>
+                    <div class="more-menu hidden" id="more-{DOCUMENT_ID}">
+                        <button onclick="documentCard.shareDocument('{DOCUMENT_ID}')">🔗 Partager</button>
+                        <button onclick="documentCard.exportMetadata('{DOCUMENT_ID}')">📤 Exporter métadonnées</button>
+                        <button onclick="documentCard.viewHistory('{DOCUMENT_ID}')">📜 Historique</button>
+                        <hr>
+                        <button onclick="documentCard.deleteDocument('{DOCUMENT_ID}')" class="danger">🗑️ Supprimer</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-timestamps">
+                <span class="timestamp">Créé: {CREATED_TIMESTAMP}</span>
+                {UPDATED_TIMESTAMP}
+            </div>
+        </div>
+    </div>
+
+    <!-- Compact Card Variant -->
+    <div class="document-card compact" data-document-id="{DOCUMENT_ID}">
+        <div class="compact-header">
+            <span class="file-icon">{FILE_ICON}</span>
+            <div class="compact-title">
+                <span class="document-name">{DOCUMENT_NAME}</span>
+                <span class="document-ref">#{DOCUMENT_REFERENCE}</span>
+            </div>
+            <span class="status-indicator {STATUS_CLASS}" title="{STATUS_TEXT}"></span>
+        </div>
+        <div class="compact-body">
+            <div class="compact-meta">
+                <span class="meta-item">📅 {SHORT_DATE}</span>
+                <span class="meta-item">📊 {FILE_SIZE}</span>
+                <span class="meta-item">🔐 {TRUNCATED_HASH}</span>
+            </div>
+        </div>
+        <div class="compact-actions">
+            <button class="compact-btn" onclick="documentCard.viewDetails('{DOCUMENT_ID}')" title="Détails">👁️</button>
+            <button class="compact-btn" onclick="documentCard.downloadDocument('{DOCUMENT_ID}')" title="Télécharger">💾</button>
+            <button class="compact-btn" onclick="documentCard.copyHash('{FULL_HASH}')" title="Copier hash">📋</button>
+        </div>
+    </div>
+
+    <!-- List Item Variant -->
+    <div class="document-list-item" data-document-id="{DOCUMENT_ID}">
+        <div class="list-item-content">
+            <div class="item-main">
+                <span class="file-icon">{FILE_ICON}</span>
+                <div class="item-details">
+                    <div class="item-title">
+                        <span class="document-name">{DOCUMENT_NAME}</span>
+                        <span class="document-reference">#{DOCUMENT_REFERENCE}</span>
+                    </div>
+                    <div class="item-meta">
+                        <span class="meta-date">📅 {CREATED_DATE}</span>
+                        <span class="meta-size">📊 {FILE_SIZE}</span>
+                        <span class="meta-hash" title="{FULL_HASH}">🔐 {TRUNCATED_HASH}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="item-status">
+                <span class="status-badge {STATUS_CLASS}">{STATUS_TEXT}</span>
+                <span class="blockchain-badge {BLOCKCHAIN_STATUS_CLASS}">{BLOCKCHAIN_ICON}</span>
+            </div>
+        </div>
+        <div class="list-item-actions">
+            <button class="list-action-btn" onclick="documentCard.viewDetails('{DOCUMENT_ID}')">Voir</button>
+            <button class="list-action-btn" onclick="documentCard.downloadDocument('{DOCUMENT_ID}')">Télécharger</button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Document Card Component Styles */
+.document-card-component {
+    --primary-color: #667eea;
+    --secondary-color: #f3f4f6;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --text-color: #374151;
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Standard Card Styles */
+.document-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+}
+
+.document-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--primary-color);
+}
+
+.card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.document-icon {
+    flex-shrink: 0;
+}
+
+.file-icon {
+    display: block;
+    width: 40px;
+    height: 40px;
+    background: var(--secondary-color);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.document-title-section {
+    flex: 1;
+    min-width: 0;
+}
+
+.document-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0 0 0.25rem 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.document-reference {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-family: 'Courier New', monospace;
+}
+
+.document-status {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.status-processing {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-completed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.card-body {
+    padding: 1rem 1.5rem;
+}
+
+.document-metadata {
+    margin-bottom: 1rem;
+}
+
+.meta-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.meta-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.meta-value {
+    color: var(--text-color);
+    text-align: right;
+}
+
+.hash-display {
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.hash-display:hover {
+    color: var(--primary-color);
+}
+
+/* Metadata Toggle */
+.metadata-toggle {
+    margin-bottom: 1rem;
+}
+
+.toggle-button {
+    width: 100%;
+    background: var(--secondary-color);
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 0.85rem;
+}
+
+.toggle-button:hover {
+    background: #e5e7eb;
+}
+
+.toggle-icon {
+    transition: transform 0.2s ease;
+}
+
+.toggle-button.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.metadata-content {
+    margin-top: 0.5rem;
+    background: #f9fafb;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.metadata-list {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.metadata-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.metadata-item:last-child {
+    border-bottom: none;
+}
+
+/* Blockchain Status */
+.blockchain-status {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.blockchain-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.blockchain-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.blockchain-status-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 8px;
+}
+
+.blockchain-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.blockchain-confirmed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.blockchain-error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.card-footer {
+    padding: 1rem 1.5rem;
+    background: #fafbfc;
+    border-top: 1px solid var(--border-color);
+}
+
+.document-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    text-decoration: none;
+}
+
+.action-btn.primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.action-btn.primary:hover {
+    background: #5a6fd8;
+}
+
+.action-btn.secondary {
+    background: white;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.action-btn.secondary:hover {
+    background: var(--secondary-color);
+    border-color: var(--primary-color);
+}
+
+.action-btn.tertiary {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0.5rem;
+}
+
+.action-btn.tertiary:hover {
+    background: var(--secondary-color);
+}
+
+/* More Actions Menu */
+.more-actions {
+    position: relative;
+    margin-left: auto;
+}
+
+.more-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: var(--shadow-hover);
+    min-width: 150px;
+    z-index: 10;
+}
+
+.more-menu button {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s ease;
+}
+
+.more-menu button:hover {
+    background: var(--secondary-color);
+}
+
+.more-menu button.danger {
+    color: var(--danger-color);
+}
+
+.more-menu hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 0.25rem 0;
+}
+
+.card-timestamps {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Compact Card Styles */
+.document-card.compact {
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.compact-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.compact-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.document-name {
+    display: block;
+    font-weight: 500;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.document-ref {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-indicator.processing {
+    background: #f59e0b;
+}
+
+.status-indicator.completed {
+    background: var(--success-color);
+}
+
+.status-indicator.error {
+    background: var(--danger-color);
+}
+
+.compact-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.compact-actions {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: flex-end;
+}
+
+.compact-btn {
+    padding: 0.25rem 0.5rem;
+    background: var(--secondary-color);
+    border: none;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.compact-btn:hover {
+    background: #e5e7eb;
+}
+
+/* List Item Styles */
+.document-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.document-list-item:hover {
+    border-color: var(--primary-color);
+    background: #f8f9ff;
+}
+
+.list-item-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.item-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.item-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.item-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.item-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.item-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.list-item-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.list-action-btn {
+    padding: 0.25rem 0.75rem;
+    background: var(--secondary-color);
+    border: none;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.list-action-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .card-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .document-actions {
+        justify-content: center;
+    }
+    
+    .action-btn .btn-text {
+        display: none;
+    }
+    
+    .compact-meta {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .item-meta {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .list-item-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-header,
+    .card-body,
+    .card-footer {
+        padding: 1rem;
+    }
+    
+    .meta-row {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .meta-value {
+        text-align: left;
+    }
+    
+    .document-actions {
+        grid-template-columns: repeat(2, 1fr);
+        display: grid;
+        gap: 0.5rem;
+    }
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selectable {
+    user-select: all;
+    cursor: pointer;
+}
+
+.loading-placeholder {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+</style>
+
+<script>
+/**
+ * Document Card Component Controller
+ */
+class DocumentCardComponent {
+    constructor() {
+        this.expandedMetadata = new Set();
+        this.openMenus = new Set();
+        
+        // Close menus when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.more-actions')) {
+                this.closeAllMenus();
+            }
+        });
+    }
+
+    /**
+     * Toggle metadata visibility
+     * @param {string} documentId - Document ID
+     */
+    toggleMetadata(documentId) {
+        const metadataContent = document.getElementById(`metadata-${documentId}`);
+        const toggleButton = metadataContent?.previousElementSibling;
+        
+        if (!metadataContent) return;
+
+        if (this.expandedMetadata.has(documentId)) {
+            metadataContent.classList.add('hidden');
+            toggleButton?.classList.remove('expanded');
+            this.expandedMetadata.delete(documentId);
+        } else {
+            metadataContent.classList.remove('hidden');
+            toggleButton?.classList.add('expanded');
+            this.expandedMetadata.add(documentId);
+        }
+    }
+
+    /**
+     * Toggle more actions menu
+     * @param {string} documentId - Document ID
+     */
+    toggleMoreActions(documentId) {
+        const menu = document.getElementById(`more-${documentId}`);
+        if (!menu) return;
+
+        if (this.openMenus.has(documentId)) {
+            menu.classList.add('hidden');
+            this.openMenus.delete(documentId);
+        } else {
+            this.closeAllMenus();
+            menu.classList.remove('hidden');
+            this.openMenus.add(documentId);
+        }
+    }
+
+    /**
+     * Close all open menus
+     */
+    closeAllMenus() {
+        this.openMenus.forEach(documentId => {
+            const menu = document.getElementById(`more-${documentId}`);
+            if (menu) {
+                menu.classList.add('hidden');
+            }
+        });
+        this.openMenus.clear();
+    }
+
+    /**
+     * View document details
+     * @param {string} documentId - Document ID
+     */
+    async viewDetails(documentId) {
+        if (typeof documentList !== 'undefined') {
+            await documentList.viewDocument(documentId);
+        }
+    }
+
+    /**
+     * Download document
+     * @param {string} documentId - Document ID
+     */
+    async downloadDocument(documentId) {
+        if (typeof documentList !== 'undefined') {
+            await documentList.downloadDocument(documentId);
+        }
+    }
+
+    /**
+     * Copy hash to clipboard
+     * @param {string} hash - Hash to copy
+     */
+    async copyHash(hash) {
+        if (typeof Utils !== 'undefined') {
+            const success = await Utils.copyToClipboard(hash);
+            if (success) {
+                Utils.showNotification('Hash copié dans le presse-papier', 'success', 2000);
+            }
+        }
+    }
+
+    /**
+     * Share document
+     * @param {string} documentId - Document ID
+     */
+    shareDocument(documentId) {
+        // TODO: Implement document sharing
+        console.log('Share document:', documentId);
+        Utils?.showNotification('Fonctionnalité de partage à venir', 'info');
+    }
+
+    /**
+     * Export metadata
+     * @param {string} documentId - Document ID
+     */
+    exportMetadata(documentId) {
+        // TODO: Implement metadata export
+        console.log('Export metadata:', documentId);
+        Utils?.showNotification('Export des métadonnées à venir', 'info');
+    }
+
+    /**
+     * View document history
+     * @param {string} documentId - Document ID
+     */
+    viewHistory(documentId) {
+        // TODO: Implement history view
+        console.log('View history:', documentId);
+        Utils?.showNotification('Historique à venir', 'info');
+    }
+
+    /**
+     * Delete document
+     * @param {string} documentId - Document ID
+     */
+    async deleteDocument(documentId) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce document ? Cette action est irréversible.')) {
+            // TODO: Implement document deletion
+            console.log('Delete document:', documentId);
+            Utils?.showNotification('Suppression à venir', 'warning');
+        }
+    }
+}
+
+// Create global instance
+const documentCard = new DocumentCardComponent();
+</script>

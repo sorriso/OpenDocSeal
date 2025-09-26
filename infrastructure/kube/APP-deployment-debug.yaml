@@ -1,0 +1,68 @@
+# File: OpenDocSeal/infrastructure/kube/APP-deployment.yaml
+# Version: 1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opendocseal-app-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opendocseal-app
+  template:
+    metadata:
+      labels:
+        app: opendocseal-app
+    spec:
+      containers:
+      - name: opendocseal-app
+        image: k8s.io/opendocseal_app:latest
+        imagePullPolicy: Never
+       
+        ports:
+        - containerPort: 8001
+ 
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "15m"
+ 
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+ 
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+ 
+        env:
+        - name: LOG_TO_STDOUT
+          value: "true"
+ 
+        volumeMounts:
+
+        - name: shared-logs
+          mountPath: /var/log/caddy
+          subPath: app
+ 
+        - name: opendocseal-app-volume
+          mountPath: "/usr/share/caddy"
+ 
+      volumes:
+ 
+      - name: opendocseal-app-volume
+        persistentVolumeClaim:
+          claimName: opendocseal-app-local-pvc
+
+      - name: shared-logs
+        persistentVolumeClaim:
+          claimName: opendocseal-logs-local-pvc

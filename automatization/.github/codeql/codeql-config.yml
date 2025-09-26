@@ -1,0 +1,88 @@
+# Configuration CodeQL pour OpenDocSeal
+# Référence: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning
+
+name: "OpenDocSeal CodeQL Config"
+
+# Chemins à analyser
+paths:
+  - source/
+  - tools/
+  - "*.py"
+
+# Chemins à ignorer
+paths-ignore:
+  - "**/*.md"
+  - "**/*.txt"
+  - "**/*.json"
+  - "**/*.yml"
+  - "**/*.yaml"
+  - "**/node_modules/"
+  - "**/venv/"
+  - "**/.venv/"
+  - "**/env/"
+  - "**/.env/"
+  - "**/build/"
+  - "**/dist/"
+  - "**/__pycache__/"
+  - "**/*.pyc"
+  - "**/tests/"
+  - "**/test_*.py"
+  - "**/*_test.py"
+  - "**/conftest.py"
+
+# Requêtes personnalisées
+queries:
+  - name: python-security-and-quality
+    uses: security-and-quality
+  - name: python-security-extended
+    uses: security-extended
+
+# Configuration pour Python
+python:
+  # Dépendances à installer avant l'analyse
+  setup-python-dependencies: true
+  
+  # Packages Python à analyser
+  python-executable: python3
+  
+  # Bibliothèques à exclure de l'analyse
+  exclude-libraries:
+    - test
+    - tests
+    - testing
+
+# Requêtes supplémentaires pour la sécurité
+security-queries:
+  - python/sql-injection
+  - python/code-injection
+  - python/path-injection
+  - python/unsafe-deserialization
+  - python/clear-text-logging-sensitive-data
+  - python/clear-text-storage-sensitive-data
+  - python/weak-cryptographic-algorithm
+  - python/inadequate-rsa-padding
+  - python/hardcoded-credentials
+  - python/use-of-a-broken-or-risky-cryptographic-algorithm
+
+# Configuration spécifique aux frameworks
+frameworks:
+  - fastapi
+  - flask
+  - django
+
+# Niveaux de sévérité à inclure
+severity-levels:
+  - error
+  - warning
+  - note
+
+# Configuration de l'analyse
+analysis:
+  # Timeout pour l'analyse (en minutes)
+  timeout: 45
+  
+  # Niveau de verbosité
+  verbosity: normal
+  
+  # Analyse des dépendances
+  analyze-dependencies: true

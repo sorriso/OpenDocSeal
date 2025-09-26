@@ -1,0 +1,102 @@
+# Configuration yamllint pour OpenDocSeal
+# Référence: https://yamllint.readthedocs.io/en/stable/configuration.html
+
+extends: relaxed
+
+rules:
+  # Longueur des lignes
+  line-length:
+    max: 120
+    level: warning
+    
+  # Indentation
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+    
+  # Espaces en fin de ligne
+  trailing-spaces:
+    level: error
+    
+  # Lignes vides
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 1
+    
+  # Documents vides
+  document-start:
+    present: false
+    
+  document-end:
+    present: false
+    
+  # Commentaires
+  comments:
+    min-spaces-from-content: 1
+    require-starting-space: true
+    
+  # Clés
+  key-duplicates:
+    level: error
+    
+  # Valeurs null
+  empty-values:
+    forbid-in-block-mappings: true
+    forbid-in-flow-mappings: true
+    
+  # Truthy values
+  truthy:
+    allowed-values: [true, false, yes, no]
+    check-keys: true
+    
+  # Brackets
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+    
+  # Braces  
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+    
+  # Colons
+  colons:
+    max-spaces-before: 0
+    min-spaces-after: 1
+    max-spaces-after: 1
+    
+  # Commas
+  commas:
+    max-spaces-before: 0
+    min-spaces-after: 1
+    max-spaces-after: 1
+    
+  # Hyphens
+  hyphens:
+    max-spaces-after: 1
+
+# Extensions de fichiers à vérifier
+yaml-files:
+  - '*.yaml'
+  - '*.yml'
+  - '.yamllint'
+  - '.yamllint.yml'
+  - '.yamllint.yaml'
+
+# Fichiers et dossiers à ignorer
+ignore: |
+  .git/
+  .venv/
+  venv/
+  env/
+  .env/
+  node_modules/
+  __pycache__/
+  .pytest_cache/
+  .mypy_cache/
+  build/
+  dist/
+  *.min.yml
+  *.min.yaml

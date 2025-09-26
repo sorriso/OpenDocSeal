@@ -1,0 +1,144 @@
+# File: OpenDocSeal/infrastructure/kube/STR-deployment.yaml
+# Version: 1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opendocseal-str-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opendocseal-str
+  template:
+    metadata:
+      labels:
+        app: opendocseal-str
+    spec:
+      containers:
+      - name: opendocseal-str
+        image: k8s.io/opendocseal_minio:latest
+        imagePullPolicy: Never
+ 
+        ports:
+        - name: api
+          containerPort: 9000
+          protocol: TCP
+        - name: console
+          containerPort: 9001
+          protocol: TCP
+
+        env:
+        # Proxy configuration
+        - name: http_proxy
+          value: ""
+        - name: https_proxy
+          value: ""
+        - name: LOG_TO_STDOUT
+          value: "true"
+          
+        # MinIO configuration from secret
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-str-secret
+              key: MINIO_ROOT_USER
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-str-secret
+              key: MINIO_ROOT_PASSWORD
+              
+        # Application configuration from secret
+        - name: OPENDOCSEAL_BUCKET_NAME
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-str-secret
+              key: BUCKET_NAME
+        - name: ENABLE_VERSIONING
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-str-secret
+              key: ENABLE_VERSIONING
+              
+        # Application access keys from secret  
+        - name: APP_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-str-secret
+              key: APP_ACCESS_KEY
+        - name: APP_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-str-secret
+              key: APP_SECRET_KEY
+        - name: N8N_SECURE_COOKIE
+          value: "false"
+
+        # MinIO server configuration
+        - name: MINIO_BROWSER
+          value: "on"
+        - name: MINIO_SERVER_URL
+          value: "http://localhost:9000"
+        - name: MINIO_BROWSER_REDIRECT_URL
+          value: "http://localhost:9001"
+        - name: OPENDOCSEAL_BUCKET_REGION
+          value: "us-east-1"
+        - name: MINIO_LOG_FILE
+          value: "/var/log/minio/minio.log"
+        - name: MINIO_LOG_LEVEL
+          value: "INFO"
+        - name: MINIO_AUDIT_WEBHOOK_ENABLE
+          value: "off"
+        - name: MINIO_AUDIT_LOGGER_HTTP_ENDPOINT
+          value: ""
+        - name: MINIO_API_REQUESTS_MAX
+          value: "10000"
+
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "15m"
+
+        livenessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: 9000
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+          
+        readinessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: 9000
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+
+        volumeMounts:
+
+        - name: minio-storage
+          mountPath: /data
+
+        - name: shared-logs
+          mountPath: /var/log/minio/
+          subPath: minio
+
+      volumes:
+
+      - name: minio-storage
+        persistentVolumeClaim:
+          claimName: opendocseal-str-pvc
+
+      - name: shared-logs
+        persistentVolumeClaim:
+          claimName: opendocseal-logs-local-pvc

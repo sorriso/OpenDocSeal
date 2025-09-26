@@ -1,0 +1,120 @@
+name: 'Security Scan Action'
+description: 'Composite action for comprehensive security scanning'
+author: 'OpenDocSeal Team'
+
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+  
+  upload-results:
+    description: 'Whether to upload results as artifacts'
+    required: false
+    default: 'true'
+
+  fail-on-high:
+    description: 'Fail the action on high severity issues'
+    required: false
+    default: 'false'
+
+outputs:
+  bandit-issues:
+    description: 'Number of Bandit issues found'
+    value: ${{ steps.bandit.outputs.issues }}
+  
+  safety-vulnerabilities:
+    description: 'Number of Safety vulnerabilities found'
+    value: ${{ steps.safety.outputs.vulnerabilities }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install security tools
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit[toml] safety pip-audit
+
+    - name: Create reports directory
+      shell: bash
+      run: mkdir -p security-reports
+
+    - name: Run Bandit Security Scanner
+      id: bandit
+      shell: bash
+      run: |
+        bandit -r . -f json -o security-reports/bandit.json --exit-zero
+        ISSUES=$(python -c "import json; data=json.load(open('security-reports/bandit.json')); print(len(data.get('results', [])))")
+        echo "issues=$ISSUES" >> $GITHUB_OUTPUT
+        
+        if [ "$ISSUES" -gt 0 ]; then
+          echo "::warning::Found $ISSUES security issues with Bandit"
+          bandit -r . -f txt
+        fi
+
+    - name: Run Safety Check
+      id: safety
+      shell: bash
+      run: |
+        safety check --json --output security-reports/safety.json || true
+        VULNS=$(python -c "import json; data=json.load(open('security-reports/safety.json')) if open('security-reports/safety.json').read().strip() else []; print(len(data) if isinstance(data, list) else 0)" 2>/dev/null || echo "0")
+        echo "vulnerabilities=$VULNS" >> $GITHUB_OUTPUT
+        
+        if [ "$VULNS" -gt 0 ]; then
+          echo "::warning::Found $VULNS vulnerabilities with Safety"
+          safety check
+        fi
+
+    - name: Run pip-audit
+      shell: bash
+      run: |
+        pip-audit --format=json --output=security-reports/pip-audit.json || true
+
+    - name: Generate Security Summary
+      shell: bash
+      run: |
+        echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Bandit Issues:** ${{ steps.bandit.outputs.issues }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Safety Vulnerabilities:** ${{ steps.safety.outputs.vulnerabilities }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.bandit.outputs.issues }}" -gt 0 ] || [ "${{ steps.safety.outputs.vulnerabilities }}" -gt 0 ]; then
+          echo "⚠️ **Action Required:** Security issues detected. Please review the reports." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ **No critical security issues detected.**" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Upload Security Reports
+      if: inputs.upload-results == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: security-reports/
+        retention-days: 30
+
+    - name: Fail on high severity issues
+      if: inputs.fail-on-high == 'true'
+      shell: bash
+      run: |
+        HIGH_ISSUES=$(python -c "
+        import json
+        try:
+            with open('security-reports/bandit.json') as f:
+                data = json.load(f)
+            high_severity = [r for r in data.get('results', []) if r.get('issue_severity') == 'HIGH']
+            print(len(high_severity))
+        except:
+            print(0)
+        ")
+        
+        if [ "$HIGH_ISSUES" -gt 0 ]; then
+          echo "::error::Found $HIGH_ISSUES high severity security issues"
+          exit 1
+        fi

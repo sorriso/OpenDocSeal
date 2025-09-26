@@ -1,0 +1,244 @@
+# File: OpenDocSeal/infrastructure/kube/TSK-init-job.yaml
+# Version: 1
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opendocseal-n8n-init
+  namespace: opendocseal
+spec:
+  # Job configuration
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600  # Clean up job after 1 hour
+  
+  template:
+    metadata:
+      labels:
+        app: opendocseal-n8n-init
+    spec:
+      restartPolicy: OnFailure
+      
+      containers:
+      - name: n8n-init
+        image: curlimages/curl:latest
+        
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e  # Exit on any error
+          
+          echo "========================================="
+          echo "N8N Initialization Job Starting"
+          echo "========================================="
+          echo "Timestamp: $(date)"
+          echo "Target N8N service: opendocseal-tsk-service.opendocseal.svc.cluster.local:5678"
+          echo ""
+          
+          # Configuration
+          N8N_SERVICE_URL="http://opendocseal-tsk-service.opendocseal.svc.cluster.local:5678"
+          MAX_WAIT_TIME=600  # 10 minutes max wait
+          CHECK_INTERVAL=10  # Check every 10 seconds
+          
+          echo "Configuration:"
+          echo "  Service URL: $N8N_SERVICE_URL"
+          echo "  Max wait time: ${MAX_WAIT_TIME}s"
+          echo "  Check interval: ${CHECK_INTERVAL}s"
+          echo "  Owner email: $OWNER_EMAIL"
+          echo "  Owner name: $OWNER_FIRST_NAME $OWNER_LAST_NAME"
+          echo ""
+          
+          # Wait for N8N service to be ready
+          echo "Waiting for N8N service to be available..."
+          START_TIME=$(date +%s)
+          
+          while true; do
+            CURRENT_TIME=$(date +%s)
+            ELAPSED=$((CURRENT_TIME - START_TIME))
+            
+            echo "[$ELAPSED/${MAX_WAIT_TIME}s] Testing N8N service connectivity..."
+            
+            # Test service connectivity
+            if curl -sf --connect-timeout 5 --max-time 10 "$N8N_SERVICE_URL/" > /dev/null 2>&1; then
+              echo "✅ N8N service is responding"
+              break
+            else
+              echo "⏳ N8N service not ready yet"
+            fi
+            
+            # Check timeout
+            if [ $ELAPSED -ge $MAX_WAIT_TIME ]; then
+              echo "❌ Timeout waiting for N8N service after ${MAX_WAIT_TIME} seconds"
+              echo "❌ N8N initialization failed - service unavailable"
+              exit 1
+            fi
+            
+            sleep $CHECK_INTERVAL
+          done
+          
+          echo ""
+          echo "N8N service is ready. Checking setup status..."
+          
+          # Check if setup is already done
+          echo "Testing N8N login endpoint to detect existing setup..."
+          LOGIN_RESPONSE=$(curl -s --connect-timeout 5 --max-time 10 "$N8N_SERVICE_URL/rest/login" 2>/dev/null || echo "request_failed")
+          
+          echo "Login endpoint response preview:"
+          echo "$LOGIN_RESPONSE" | head -c 200
+          echo ""
+          
+          # Analyze login response to determine setup status
+          if echo "$LOGIN_RESPONSE" | grep -q '"data"' 2>/dev/null; then
+            echo "ℹ️  N8N appears to have existing setup (found login form)"
+            
+            # Try to login with expected credentials to verify
+            echo "Verifying existing setup with expected credentials..."
+            LOGIN_TEST=$(curl -s --connect-timeout 5 --max-time 10 \
+              -X POST "$N8N_SERVICE_URL/rest/login" \
+              -H "Content-Type: application/json" \
+              -d "{\"emailOrLdapLoginId\":\"$OWNER_EMAIL\",\"password\":\"$OWNER_PASSWORD\"}" 2>/dev/null || echo "login_request_failed")
+            
+            if echo "$LOGIN_TEST" | grep -q '"token"' 2>/dev/null; then
+              echo "✅ Login successful with expected credentials"
+              echo "✅ N8N setup is already complete and functional"
+              echo "✅ Initialization job completed successfully"
+              exit 0
+            else
+              echo "⚠️  Login failed with expected credentials"
+              echo "Login test response:"
+              echo "$LOGIN_TEST" | head -c 300
+              echo ""
+              echo "⚠️  Setup might be incomplete or credentials are different"
+              echo "Will attempt to create owner account..."
+            fi
+          else
+            echo "ℹ️  N8N setup wizard detected (no existing login form)"
+            echo "Will proceed with owner account creation..."
+          fi
+          
+          echo ""
+          echo "========================================="
+          echo "Creating N8N Owner Account"
+          echo "========================================="
+          echo "Email: $OWNER_EMAIL"
+          echo "First Name: $OWNER_FIRST_NAME"
+          echo "Last Name: $OWNER_LAST_NAME"
+          echo ""
+          
+          # Attempt to create owner account
+          echo "Sending setup request to N8N API..."
+          SETUP_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 \
+            -X POST "$N8N_SERVICE_URL/rest/owner/setup" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$OWNER_EMAIL\",\"password\":\"$OWNER_PASSWORD\",\"firstName\":\"$OWNER_FIRST_NAME\",\"lastName\":\"$OWNER_LAST_NAME\"}" \
+            2>/dev/null || echo "setup_request_failed")
+          
+          echo "Setup API response:"
+          echo "----------------------------------------"
+          echo "$SETUP_RESPONSE"
+          echo "----------------------------------------"
+          echo ""
+          
+          # Analyze setup response
+          if echo "$SETUP_RESPONSE" | grep -q '"email"' 2>/dev/null; then
+            echo "✅ Owner account created successfully!"
+            
+            # Extract user info from response
+            USER_EMAIL=$(echo "$SETUP_RESPONSE" | grep -o '"email":"[^"]*"' | cut -d'"' -f4)
+            USER_ID=$(echo "$SETUP_RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+            
+            echo "✅ Created user:"
+            echo "   ID: $USER_ID"
+            echo "   Email: $USER_EMAIL"
+            echo ""
+            
+            # Verify login functionality
+            echo "Verifying login functionality..."
+            LOGIN_VERIFY=$(curl -s --connect-timeout 5 --max-time 10 \
+              -X POST "$N8N_SERVICE_URL/rest/login" \
+              -H "Content-Type: application/json" \
+              -d "{\"emailOrLdapLoginId\":\"$OWNER_EMAIL\",\"password\":\"$OWNER_PASSWORD\"}" \
+              2>/dev/null || echo "login_verify_failed")
+            
+            if echo "$LOGIN_VERIFY" | grep -q '"token"' 2>/dev/null; then
+              echo "✅ Login verification successful"
+              echo "✅ N8N is fully configured and ready to use"
+            else
+              echo "⚠️  Login verification failed (but account was created)"
+              echo "Verify response:"
+              echo "$LOGIN_VERIFY" | head -c 200
+            fi
+            
+          elif echo "$SETUP_RESPONSE" | grep -qi 'already.*exist\|already.*setup' 2>/dev/null; then
+            echo "ℹ️  Owner account already exists"
+            echo "ℹ️  Setup was already completed previously"
+            
+          elif echo "$SETUP_RESPONSE" | grep -qi 'error\|invalid\|fail' 2>/dev/null; then
+            echo "❌ Setup failed with error from N8N API"
+            echo "Error details: $SETUP_RESPONSE"
+            exit 1
+            
+          elif echo "$SETUP_RESPONSE" = "setup_request_failed"; then
+            echo "❌ Failed to connect to N8N setup API"
+            echo "Network or service issue during setup request"
+            exit 1
+            
+          else
+            echo "⚠️  Unexpected response from setup API"
+            echo "Response length: $(echo "$SETUP_RESPONSE" | wc -c) characters"
+            echo "This might indicate a partial success or API change"
+            
+            # Try to verify by attempting login
+            echo "Attempting login to verify setup status..."
+            FINAL_LOGIN_TEST=$(curl -s "$N8N_SERVICE_URL/rest/login" 2>/dev/null || echo "final_test_failed")
+            if echo "$FINAL_LOGIN_TEST" | grep -q '"data"'; then
+              echo "ℹ️  Setup appears to be complete (login form available)"
+            else
+              echo "⚠️  Setup status unclear"
+            fi
+          fi
+          
+          echo ""
+          echo "========================================="
+          echo "N8N Initialization Job Completed"
+          echo "========================================="
+          echo "Timestamp: $(date)"
+          echo ""
+          echo "Next steps:"
+          echo "1. Access N8N at: http://opendocseal.kube.local/workflows/"
+          echo "2. Or port-forward: kubectl port-forward svc/opendocseal-tsk-service 5678:5678"
+          echo "3. Login with email: $OWNER_EMAIL"
+          echo "4. Use the password configured in the secret"
+          echo ""
+          echo "Job completed successfully"
+        
+        env:
+        # Owner account credentials from secret
+        - name: OWNER_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_OWNER_EMAIL
+        - name: OWNER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_OWNER_PASSWORD
+        - name: OWNER_FIRST_NAME
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_OWNER_FIRST_NAME
+        - name: OWNER_LAST_NAME
+          valueFrom:
+            secretKeyRef:
+              name: opendocseal-tsk-secret
+              key: N8N_OWNER_LAST_NAME
+              
+        # Resource limits
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+          requests:
+            memory: "64Mi"
+            cpu: "50m"

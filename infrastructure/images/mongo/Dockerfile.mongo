@@ -1,0 +1,54 @@
+# File: Dockerfile.mongo
+# Path: infrastructure/images/mongo/Dockerfile.mongo
+# Version: 8
+# =============================================================================
+# OpenDocSeal MongoDB - Database Service
+# =============================================================================
+
+# Build arguments from .env.build with default values
+ARG MONGO_BASE_IMAGE=unknown
+ARG BUILD_DATE=unknown
+ARG BUILD_VERSION=unknown
+
+FROM ${MONGO_BASE_IMAGE}
+
+# Add labels for metadata
+LABEL org.opencontainers.image.title="OpenDocSeal MongoDB"
+LABEL org.opencontainers.image.description="MongoDB database for document metadata and transactions"
+LABEL org.opencontainers.image.version="${BUILD_VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.source="https://github.com/opendocseal/opendocseal"
+LABEL org.opencontainers.image.vendor="OpenDocSeal"
+LABEL maintainer="OpenDocSeal Team"
+
+# Install additional tools
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+        jq && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy initialization scripts from real files (after structure creation)
+COPY infrastructure/images/mongo/init-scripts/ /docker-entrypoint-initdb.d/
+
+# Copy custom MongoDB configuration from real file
+COPY infrastructure/images/mongo/mongod.conf /etc/mongod.conf
+
+# Set proper permissions for scripts
+RUN chmod +x /docker-entrypoint-initdb.d/*.js
+
+# Create log directory and set permissions
+RUN mkdir -p /var/log/mongodb && \
+    chown -R mongodb:mongodb /data/db /data/configdb /var/log/mongodb
+
+# Health check
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+#     CMD echo 'db.runCommand("ping").ok' | mongosh localhost:27017/${NOTARY_DB_NAME:-opendocseal} --quiet || exit 1
+
+# Expose port
+EXPOSE 27017
+
+# Use the default MongoDB entrypoint

@@ -1,0 +1,19 @@
+# File: OpenDocSeal/infrastructure/kube/RP-service.yaml
+# Version: 1
+apiVersion: v1
+kind: Service
+metadata:
+  name: opendocseal-str-service
+spec:
+  selector:
+    app: opendocseal-str
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+      name: "9000"
+    - protocol: TCP
+      port: 9001
+      targetPort: 9001
+      name: "9001"
+  type: ClusterIP

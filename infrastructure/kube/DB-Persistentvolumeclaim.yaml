@@ -1,0 +1,13 @@
+# File: OpenDocSeal/infrastructure/kube/DB-PersistentVolumeClaim.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opendocseal-mongo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  volumeName: opendocseal-mongo-pv
+  storageClassName: ""

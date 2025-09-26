@@ -1,0 +1,97 @@
+# File: OpenDocSeal/infrastructure/kube/DB-deployment.yaml
+# Version: 1
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: opendocseal-mongo
+spec:
+  serviceName: "opendocseal-mongo"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opendocseal-mongo
+  template:
+    metadata:
+      labels:
+        app: opendocseal-mongo
+    spec:
+      containers:
+ 
+        - name: opendocseal-mongo
+          image: k8s.io/opendocseal_mongo:latest
+          imagePullPolicy: Never
+          args:
+            - "--config"
+            - "/etc/mongod.conf"
+ 
+          ports:
+ 
+            - containerPort: 27017
+              name: mongo
+ 
+          resources:
+ 
+            limits:
+              memory: "3Gi"
+              cpu: "500m"
+ 
+            requests:
+              memory: "1Gi"
+              cpu: "15m"
+ 
+          livenessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 30
+            periodSeconds: 10
+ 
+          readinessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 10
+            periodSeconds: 5
+ 
+          env:
+ 
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: opendocseal-mongo-secret
+                  key: MONGO_INITDB_ROOT_USERNAME
+ 
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: opendocseal-mongo-secret
+                  key: MONGO_INITDB_ROOT_PASSWORD
+ 
+            - name: LOG_TO_STDOUT
+              valueFrom:
+                secretKeyRef:
+                  name: opendocseal-mongo-secret
+                  key: LOG_TO_STDOUT
+ 
+            - name: HTTP_PROXY
+              value: ""
+ 
+            - name: HTTPS_PROXY
+              value: ""
+ 
+          volumeMounts:
+
+          - name: opendocseal-mongo-data
+            mountPath: /data/db
+
+          - name: shared-logs
+            mountPath: /var/log/mongodb
+            subPath: mongo
+
+      volumes:
+              
+        - name: opendocseal-mongo-data
+          persistentVolumeClaim:
+            claimName: opendocseal-mongo-pvc
+
+        - name: shared-logs
+          persistentVolumeClaim:
+            claimName: opendocseal-logs-local-pvc

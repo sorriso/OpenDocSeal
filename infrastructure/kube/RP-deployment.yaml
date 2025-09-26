@@ -1,0 +1,76 @@
+# File: OpenDocSeal/infrastructure/kube/RP-deployment.yaml
+# Version: 1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opendocseal-rp-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opendocseal-rp
+  template:
+    metadata:
+      labels:
+        app: opendocseal-rp
+    spec:
+      containers:
+      - name: opendocseal-rp
+        image: k8s.io/opendocseal_rp:latest
+        imagePullPolicy: Never
+ 
+        ports:
+        - containerPort: 8000
+ 
+        env:
+        - name : CADDYFILE
+          value: "/etc/caddy/Caddyfile"
+        - name : http_proxy
+          value: ""
+        - name : https_proxy
+          value: ""
+        - name: LOG_TO_STDOUT
+          value: "true"
+ 
+        command: ["caddy"]
+        args: ["run", "--config", "/etc/caddy/Caddyfile"]
+ 
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "15m"
+ 
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+
+        volumeMounts:
+
+        - name: shared-logs
+          mountPath: /var/log/caddy
+          subPath: rp
+
+      volumes:
+
+      - name: shared-logs
+        persistentVolumeClaim:
+          claimName: opendocseal-logs-local-pvc

@@ -1,0 +1,68 @@
+# File: Dockerfile.api
+# Path: infrastructure/images/api/Dockerfile.api
+# Version: 9
+# =============================================================================
+# OpenDocSeal API - FastAPI Backend Service
+# =============================================================================
+
+# Build arguments from .env.build with default values
+ARG PYTHON_BASE_IMAGE=unknown
+ARG BUILD_DATE=unknown
+ARG BUILD_VERSION=unknown
+
+FROM ${PYTHON_BASE_IMAGE}
+
+# Add labels for metadata
+LABEL org.opencontainers.image.title="OpenDocSeal API"
+LABEL org.opencontainers.image.description="FastAPI backend service for document notarization"
+LABEL org.opencontainers.image.version="${BUILD_VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.source="https://github.com/opendocseal/opendocseal"
+LABEL org.opencontainers.image.vendor="OpenDocSeal"
+LABEL maintainer="OpenDocSeal Team"
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Install system dependencies first
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        dnsutils \
+        netcat-openbsd \
+        ca-certificates && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better layer caching
+# Context is now project root, so source is source/api/
+COPY source/api/requirements.txt .
+
+# Install Python packages
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy API source code
+COPY source/api/ .
+
+# Create necessary directories
+RUN mkdir -p /usr/src/app/logs /usr/src/app/temp
+
+# Set proper permissions
+RUN find . -name "*.py" -exec chmod +x {} \; 2>/dev/null || true && \
+    chown -R nobody:nogroup /usr/src/app
+
+# Switch to non-root user for security
+USER nobody
+
+# Health check
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+#     CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose port
+EXPOSE 8000
+
+# Start the application using JSON array format (recommended)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

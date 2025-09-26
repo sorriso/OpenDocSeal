@@ -1,0 +1,42 @@
+# ================================
+# File: requirements.txt
+# Version: 5
+# ================================
+
+# Web Framework & Server
+fastapi>=0.117.1          # Modern, fast web framework for building APIs (previous 0.104.1)
+uvicorn[standard]>=0.37.0 # ASGI server for FastAPI with performance optimizations (previous 0.24.0)
+python-multipart>=0.0.20   # Support for multipart/form-data (file uploads) (previous 0.0.6)
+
+# Database & ODM
+motor>=3.7.1             # Asynchronous MongoDB driver (previous 3.3.2)
+pymongo>=4.15.1          # MongoDB driver (required by motor). (previous 4.6.0)
+
+# Data Models & Validation - FIXED: Added pydantic-settings
+pydantic[email]>=2.11.9  # Data validation and settings management with email support (previous 2.5.0)
+pydantic-settings>=2.6.1 # Settings management for Pydantic v2 (NEW - required for BaseSettings)
+email-validator>=2.3.0   # Email validation for Pydantic models (previous 2.1.0)
+
+# Object Storage
+minio>=7.2.16            # MinIO client for S3-compatible object storage (previous 7.2.0)
+aiofiles>=24.1.0         # Asynchronous file operations (previous 23.2.1)
+
+# Authentication & Security
+PyJWT>=2.10.1            # JSON Web Token implementation (previous 2.8.0)
+python-jose[cryptography]>=3.5.0  # JWT implementation with cryptography support (previous 3.3.0)
+bcrypt>=4.3.0            # Password hashing library (previous 4.1.2)
+passlib[bcrypt]>=1.7.4   # Password hashing utilities with bcrypt support
+cryptography>=46.0.1     # Cryptographic recipes and primitives (previous 41.0.0)
+
+# HTTP Client
+requests>=2.32.5        # HTTP library for Python (previous 2.31.0)
+httpx>=0.25.2           # Async HTTP client (alternative to requests)
+
+# Configuration Management
+python-dotenv>=1.1.1    # Load environment variables from .env file (previous 1.0.0)
+
+# Logging & Monitoring
+structlog>=25.4.0       # Structured logging support (used in logging.py) (previous 23.1.0)
+
+# System monitoring (optional, for health metrics)
+psutil>=7.1.0           # System and process utilities (previous 5.9.0)

@@ -1,0 +1,112 @@
+# File: OpenDocSeal/infrastructure/kube/API-deployment.yaml
+# Version: 1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opendocseal-api-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opendocseal-api
+  template:
+    metadata:
+      labels:
+        app: opendocseal-api
+    spec:
+      # initContainers:
+      #   - name: wait-for-mongo
+      #     image: alpine:3.20
+      #     command: ["/bin/sh", "-c"]
+      #     args:
+      #     - |
+      #       set -euxo pipefail
+      #       echo "[$(date -Iseconds)] 🔧 Installation outils (nslookup + nc)..."
+      #       apk add --no-cache bind-tools netcat-openbsd >/dev/null
+ 
+      #       TARGET_HOST="${DB_HOST:-mongo}"
+      #       TARGET_PORT="${DB_PORT:-27017}"
+      #       FQDN="${TARGET_HOST}"
+ 
+      #       echo "[$(date -Iseconds)] 🔎 Résolution DNS de ${FQDN}..."
+      #       # Log détaillé de la résolution, bouclage tant que ça ne résout pas
+      #       until ADDR="$(nslookup "${FQDN}" 2>&1 | awk '/^Address: /{print $2; exit}')" && [ -n "${ADDR}" ]; do
+      #         echo "[$(date -Iseconds)] ⏳ DNS pas prêt pour ${FQDN}..."
+      #         sleep 1
+      #       done
+      #       echo "[$(date -Iseconds)] ✅ ${FQDN} -> ${ADDR}"
+ 
+      #       echo "[$(date -Iseconds)] 🔌 Test ouverture TCP ${FQDN}:${TARGET_PORT}..."
+      #       until nc -z "${FQDN}" "${TARGET_PORT}"; do
+      #         echo "[$(date -Iseconds)] ⏳ Port ${TARGET_PORT} pas encore ouvert sur ${FQDN}..."
+      #         sleep 1
+      #       done
+      #       echo "[$(date -Iseconds)] ✅ ${FQDN}:${TARGET_PORT} joignable"
+      #       # Petite pause pour lisibilité des logs
+      #       sleep 1
+      #     env:
+      #       - name: DB_HOST
+      #         valueFrom:
+      #           configMapKeyRef:
+      #             name: api-config
+      #             key: DB_HOST
+      #       - name: DB_PORT
+      #         value: "27017"
+ 
+      containers:
+     
+      - name: opendocseal-api
+        image: k8s.io/opendocseal_api:latest
+        imagePullPolicy: Never
+       
+        ports:
+        - containerPort: 8000
+ 
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "15m"
+ 
+        envFrom:
+          - secretRef:
+              name: opendocseal-api-secret
+ 
+        # livenessProbe:
+        #   httpGet:
+        #     path: /api/v1/healthz
+        #     port: 8000
+        #   initialDelaySeconds: 10
+        #   periodSeconds: 10
+ 
+        # readinessProbe:
+        #   httpGet:
+        #     path: /api/v1/readiness
+        #     port: 8000
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
+ 
+        env:
+        - name: LOG_TO_STDOUT
+          value: "true"
+ 
+        volumeMounts:
+ 
+        - name: shared-logs
+          mountPath: /usr/src/app/logs
+          subPath: api
+
+        - mountPath: "/usr/src/app"
+          name: opendocseal-api-volume
+ 
+      volumes:
+
+      - name: opendocseal-api-volume
+        persistentVolumeClaim:
+          claimName: opendocseal-api-local-pvc
+
+      - name: shared-logs
+        persistentVolumeClaim:
+          claimName: opendocseal-logs-local-pvc

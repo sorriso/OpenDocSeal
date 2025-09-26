@@ -1,0 +1,23 @@
+# Dockerfile.n8n
+# Path: infrastructure/images/n8n/Dockerfile.n8n
+
+# Build arguments from .env_build
+ARG N8N_BASE_IMAGE=unknown
+
+# ============================================================================= 
+# Production stage
+# =============================================================================
+FROM ${N8N_BASE_IMAGE}
+
+USER root
+
+# Update and install additional packages
+RUN apk update && \
+    apk add --no-cache \
+        bash \
+        curl \
+        git \
+        openssh-client \
+    && rm -rf /var/cache/apk/*
+
+USER node

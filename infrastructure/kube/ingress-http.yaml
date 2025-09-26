@@ -1,0 +1,21 @@
+# File: OpenDocSeal/infrastructure/kube/ingress.yaml
+# Version: 1
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opendocseal-ingress
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: opendocseal.kube.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: opendocseal-rp-service
+                port:
+                  number: 8000

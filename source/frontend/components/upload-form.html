@@ -1,0 +1,713 @@
+<!-- 
+File: upload-form.html
+Path: infrastructure/source/frontend/components/upload-form.html
+Version: 1
+-->
+<div class="upload-form-component">
+    <div class="form-section file-upload-section">
+        <h3>📁 Sélection du fichier</h3>
+        <div class="file-drop-area" id="file-drop-area">
+            <div class="drop-zone-content">
+                <div class="drop-zone-icon">📄</div>
+                <p class="drop-zone-text">
+                    <strong>Glissez-déposez votre fichier ici</strong><br>
+                    ou <button type="button" class="link-button" onclick="document.getElementById('file-input-component').click()">parcourez vos fichiers</button>
+                </p>
+                <input type="file" id="file-input-component" class="hidden" accept="*/*">
+            </div>
+        </div>
+        
+        <div id="file-preview-section" class="file-preview hidden">
+            <div class="file-preview-header">
+                <h4>📋 Informations du fichier</h4>
+                <button type="button" class="btn-remove-file" onclick="uploadForm.removeFile()">🗑️ Supprimer</button>
+            </div>
+            <div class="file-info-grid">
+                <div class="info-item">
+                    <span class="info-label">Nom:</span>
+                    <span id="file-name-display" class="info-value"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Taille:</span>
+                    <span id="file-size-display" class="info-value"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Type:</span>
+                    <span id="file-type-display" class="info-value"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Modifié:</span>
+                    <span id="file-date-display" class="info-value"></span>
+                </div>
+            </div>
+            
+            <div class="hash-section">
+                <div class="hash-header">
+                    <span class="info-label">🔐 Empreinte SHA256:</span>
+                    <div class="hash-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="uploadForm.copyHash()">
+                            📋 Copier
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="uploadForm.verifyHash()">
+                            ✅ Vérifier
+                        </button>
+                    </div>
+                </div>
+                <div class="hash-display">
+                    <code id="file-hash-display" class="hash-value">Calcul en cours...</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section metadata-section">
+        <h3>🏷️ Métadonnées du document</h3>
+        <div class="metadata-editor-tabs">
+            <button type="button" class="metadata-tab active" data-mode="keyvalue">
+                📝 Clé / Valeur
+            </button>
+            <button type="button" class="metadata-tab" data-mode="json">
+                💻 JSON
+            </button>
+        </div>
+
+        <div class="metadata-content">
+            <!-- Key-Value Editor -->
+            <div id="keyvalue-mode" class="metadata-mode active">
+                <div class="keyvalue-pairs" id="keyvalue-pairs-container">
+                    <!-- Dynamic key-value pairs will be inserted here -->
+                </div>
+                <div class="metadata-actions">
+                    <button type="button" class="btn btn-secondary" onclick="uploadForm.addMetadataPair()">
+                        ➕ Ajouter une paire
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="uploadForm.importMetadata()">
+                        📥 Importer JSON
+                    </button>
+                </div>
+            </div>
+
+            <!-- JSON Editor -->
+            <div id="json-mode" class="metadata-mode">
+                <div class="json-editor-container">
+                    <textarea id="metadata-json-editor" 
+                              placeholder='{"exemple": "valeur", "auteur": "nom", "version": "1.0"}'
+                              rows="8"></textarea>
+                    <div class="json-validation" id="json-validation-message"></div>
+                </div>
+                <div class="metadata-actions">
+                    <button type="button" class="btn btn-secondary" onclick="uploadForm.formatJSON()">
+                        🎨 Formater
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="uploadForm.validateJSON()">
+                        ✅ Valider
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="uploadForm.exportMetadata()">
+                        📤 Exporter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section options-section">
+        <h3>⚙️ Options</h3>
+        <div class="options-grid">
+            <label class="option-item">
+                <input type="checkbox" id="store-file-option" checked>
+                <div class="option-content">
+                    <strong>💾 Archiver le fichier</strong>
+                    <p>Stocker une copie sécurisée du fichier sur le serveur</p>
+                </div>
+            </label>
+            
+            <label class="option-item">
+                <input type="checkbox" id="email-notification-option">
+                <div class="option-content">
+                    <strong>📧 Notification par email</strong>
+                    <p>Recevoir une confirmation par email une fois la notarisation terminée</p>
+                </div>
+            </label>
+            
+            <label class="option-item">
+                <input type="checkbox" id="public-verification-option">
+                <div class="option-content">
+                    <strong>🌐 Vérification publique</strong>
+                    <p>Permettre la vérification publique de ce document (sans accès au contenu)</p>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <div class="form-section submit-section">
+        <div class="submit-info">
+            <div class="submit-summary" id="submit-summary">
+                <h4>📊 Résumé</h4>
+                <div class="summary-items">
+                    <div class="summary-item">
+                        <span class="summary-label">Fichier:</span>
+                        <span class="summary-value" id="summary-filename">Aucun fichier sélectionné</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Métadonnées:</span>
+                        <span class="summary-value" id="summary-metadata">0 propriétés</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Archivage:</span>
+                        <span class="summary-value" id="summary-storage">Activé</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="submit-actions">
+                <button type="button" class="btn btn-secondary" onclick="uploadForm.previewSubmission()">
+                    👁️ Aperçu
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="uploadForm.saveAsDraft()">
+                    💾 Sauvegarder brouillon
+                </button>
+                <button type="submit" class="btn btn-primary btn-large">
+                    🔐 Notariser le document
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Section (hidden by default) -->
+    <div id="submission-progress" class="submission-progress hidden">
+        <div class="progress-content">
+            <h3>⏳ Notarisation en cours...</h3>
+            <div class="progress-steps">
+                <div class="progress-step active" id="step-validation">
+                    <div class="step-icon">1</div>
+                    <div class="step-text">Validation des données</div>
+                </div>
+                <div class="progress-step" id="step-upload">
+                    <div class="step-icon">2</div>
+                    <div class="step-text">Upload du fichier</div>
+                </div>
+                <div class="progress-step" id="step-hashing">
+                    <div class="step-icon">3</div>
+                    <div class="step-text">Calcul des empreintes</div>
+                </div>
+                <div class="progress-step" id="step-blockchain">
+                    <div class="step-icon">4</div>
+                    <div class="step-text">Soumission blockchain</div>
+                </div>
+                <div class="progress-step" id="step-complete">
+                    <div class="step-icon">✓</div>
+                    <div class="step-text">Notarisation terminée</div>
+                </div>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="overall-progress"></div>
+                </div>
+                <div class="progress-text" id="progress-status">Initialisation...</div>
+            </div>
+            
+            <div class="progress-actions">
+                <button type="button" class="btn btn-secondary" onclick="uploadForm.cancelSubmission()" id="cancel-submission">
+                    ⏹️ Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Section (hidden by default) -->
+    <div id="submission-success" class="submission-result hidden">
+        <div class="success-content">
+            <div class="success-icon">🎉</div>
+            <h3>Document notarisé avec succès !</h3>
+            <div class="success-details">
+                <div class="detail-item">
+                    <strong>Référence:</strong>
+                    <code id="success-reference" class="selectable"></code>
+                </div>
+                <div class="detail-item">
+                    <strong>Transaction ID:</strong>
+                    <code id="success-transaction" class="selectable"></code>
+                </div>
+                <div class="detail-item">
+                    <strong>Timestamp:</strong>
+                    <span id="success-timestamp"></span>
+                </div>
+            </div>
+            <div class="success-actions">
+                <button type="button" class="btn btn-primary" onclick="uploadForm.downloadProof()">
+                    📥 Télécharger la preuve
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="uploadForm.copyReference()">
+                    📋 Copier la référence
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="uploadForm.startNewSubmission()">
+                    ➕ Nouveau document
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Component-specific styles */
+.upload-form-component {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-section h3 {
+    margin: 0 0 1rem 0;
+    color: #374151;
+    font-size: 1.1rem;
+}
+
+/* File upload section */
+.file-drop-area {
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-drop-area:hover {
+    border-color: #667eea;
+    background-color: #f8f9ff;
+}
+
+.file-drop-area.dragover {
+    border-color: #667eea;
+    background-color: #e8f2ff;
+    transform: scale(1.02);
+}
+
+.drop-zone-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: #667eea;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: inherit;
+}
+
+.file-preview {
+    border: 1px solid #d1fae5;
+    background: #f0fdf4;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.file-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.file-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #374151;
+}
+
+.info-value {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.hash-section {
+    border-top: 1px solid #d1fae5;
+    padding-top: 1rem;
+}
+
+.hash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.hash-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+.hash-value {
+    background: #f3f4f6;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+    font-size: 0.8rem;
+    display: block;
+}
+
+/* Metadata section */
+.metadata-editor-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.metadata-tab {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: #f9fafb;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.metadata-tab.active {
+    background: #667eea;
+    color: white;
+}
+
+.metadata-mode {
+    display: none;
+}
+
+.metadata-mode.active {
+    display: block;
+}
+
+.json-editor-container textarea {
+    width: 100%;
+    font-family: 'Courier New', monospace;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 1rem;
+    resize: vertical;
+    min-height: 150px;
+}
+
+.json-validation {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.json-validation.valid {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.json-validation.invalid {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.metadata-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+/* Options section */
+.options-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.option-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.option-item:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.option-item input[type="checkbox"] {
+    margin-top: 0.25rem;
+}
+
+.option-content p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* Submit section */
+.submit-info {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    align-items: start;
+}
+
+.submit-summary {
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.submit-summary h4 {
+    margin: 0 0 0.75rem 0;
+    color: #374151;
+}
+
+.summary-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
+
+.summary-label {
+    color: #6b7280;
+}
+
+.summary-value {
+    font-weight: 500;
+    color: #374151;
+}
+
+.submit-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 200px;
+}
+
+/* Progress section */
+.submission-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.progress-content {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 30px;
+    right: 30px;
+    height: 2px;
+    background: #e5e7eb;
+    z-index: 0;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.step-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.progress-step.active .step-icon {
+    background: #667eea;
+    color: white;
+}
+
+.progress-step.completed .step-icon {
+    background: #10b981;
+    color: white;
+}
+
+.step-text {
+    font-size: 0.7rem;
+    text-align: center;
+    color: #6b7280;
+    max-width: 60px;
+}
+
+.progress-bar-container {
+    margin: 1.5rem 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 12px;
+    background: #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+/* Success section */
+.submission-result {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.success-content {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+}
+
+.success-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.success-details {
+    background: #f0fdf4;
+    border: 1px solid #d1fae5;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+.detail-item {
+    margin-bottom: 0.75rem;
+}
+
+.detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.selectable {
+    user-select: all;
+    background: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+.success-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .submit-info {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .submit-actions {
+        min-width: auto;
+    }
+    
+    .progress-steps {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .success-actions {
+        flex-direction: column;
+    }
+}
+</style>

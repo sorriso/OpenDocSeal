@@ -1,0 +1,60 @@
+# File: Dockerfile.rp
+# Path: infrastructure/images/rp/Dockerfile.rp
+# Version: 6
+# =============================================================================
+# OpenDocSeal Reverse Proxy - Caddy with Security Plugins
+# =============================================================================
+
+# Build arguments from .env.build with default values
+ARG CADDY_BUILDER_BASE_IMAGE=unknown
+ARG CADDY_BASE_IMAGE=unknown
+ARG BUILD_DATE=unknown
+ARG BUILD_VERSION=unknown
+
+# Build stage - Custom Caddy with plugins
+FROM ${CADDY_BUILDER_BASE_IMAGE} AS builder
+
+# Build Caddy with required plugins
+RUN xcaddy build \
+    --with github.com/greenpau/caddy-security@v1.1.31 \
+    --with github.com/mholt/caddy-l4 \
+    --with github.com/caddy-dns/cloudflare \
+    --output /usr/bin/caddy
+
+# Production stage
+FROM ${CADDY_BASE_IMAGE}
+
+# Add labels for metadata
+LABEL org.opencontainers.image.title="OpenDocSeal Reverse Proxy"
+LABEL org.opencontainers.image.description="Caddy reverse proxy with security plugins"
+LABEL org.opencontainers.image.version="${BUILD_VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.source="https://github.com/opendocseal/opendocseal"
+LABEL org.opencontainers.image.vendor="OpenDocSeal"
+LABEL maintainer="OpenDocSeal Team"
+
+# Copy custom Caddy binary with plugins
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+
+# Create default Caddyfile as fallback
+RUN echo ":8080 {\n  reverse_proxy http://app:80\n  respond /health \"Reverse Proxy OK\" 200\n}" > /etc/caddy/Caddyfile
+
+# Copy custom Caddyfile (overwrites default)
+COPY infrastructure/images/rp/Caddyfile /etc/caddy/Caddyfile
+
+# Create SSL certificates directory and copy if available
+RUN mkdir -p /etc/ssl/caddy
+
+# Create necessary directories
+RUN mkdir -p /var/log/caddy /var/lib/caddy && \
+    chmod -R 755 /var/log/caddy /var/lib/caddy /etc/ssl/caddy
+
+# Health check
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+#     CMD curl -f http://localhost:8080/health || exit 1
+
+# Expose ports
+EXPOSE 8080
+
+# Start Caddy
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

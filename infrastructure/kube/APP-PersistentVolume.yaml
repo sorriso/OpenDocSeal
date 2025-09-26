@@ -1,0 +1,14 @@
+# File: OpenDocSeal/infrastructure/kube/APP-PersistentVolume.yaml
+# Version: 1
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: opendocseal-app-local-pv
+spec:
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /Users/olivier/Library/Mobile Documents/com~apple~CloudDocs/cursor/OpenDocSeal/source/app
+  storageClassName: ""

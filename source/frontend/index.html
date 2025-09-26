@@ -1,0 +1,121 @@
+<!-- 
+File: index.html
+Path: infrastructure/source/frontend/index.html
+Version: 1
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenDocSeal - Notaire Numérique</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1>🔒 OpenDocSeal</h1>
+        <div class="user-info">
+            <span id="user-name">Utilisateur non connecté</span>
+            <button id="auth-button" class="btn btn-primary">Se connecter</button>
+        </div>
+    </header>
+
+    <main class="app-main">
+        <nav class="tab-navigation">
+            <button class="tab-btn active" data-tab="upload">📤 Enregistrer Document</button>
+            <button class="tab-btn" data-tab="list">📋 Mes Documents</button>
+        </nav>
+
+        <div class="tab-content">
+            <!-- Onglet Upload -->
+            <div id="upload-tab" class="tab-panel active">
+                <div class="upload-container">
+                    <h2>Enregistrer un nouveau document</h2>
+                    
+                    <form id="document-form" class="document-form">
+                        <div class="file-section">
+                            <label for="file-input">Fichier à enregistrer :</label>
+                            <input type="file" id="file-input" accept="*/*" required>
+                            <div id="file-info" class="file-info hidden"></div>
+                        </div>
+
+                        <div class="metadata-section">
+                            <h3>Métadonnées</h3>
+                            <div class="metadata-tabs">
+                                <button type="button" class="metadata-tab active" data-mode="keyvalue">Clé/Valeur</button>
+                                <button type="button" class="metadata-tab" data-mode="json">JSON</button>
+                            </div>
+                            
+                            <div id="keyvalue-editor" class="metadata-editor">
+                                <div id="keyvalue-container"></div>
+                                <button type="button" id="add-metadata" class="btn btn-secondary">+ Ajouter</button>
+                            </div>
+                            
+                            <div id="json-editor" class="metadata-editor hidden">
+                                <textarea id="json-textarea" placeholder='{"exemple": "valeur"}'></textarea>
+                                <div id="json-validation" class="validation-message"></div>
+                            </div>
+                        </div>
+
+                        <div class="options-section">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="upload-file" checked>
+                                Archiver le fichier sur le serveur
+                            </label>
+                        </div>
+
+                        <div class="submit-section">
+                            <button type="submit" class="btn btn-primary btn-large">🔐 Enregistrer et Notariser</button>
+                        </div>
+                    </form>
+
+                    <div id="progress-section" class="progress-section hidden">
+                        <h3>Traitement en cours...</h3>
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <div id="progress-status">Calcul de l'empreinte...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglet Liste -->
+            <div id="list-tab" class="tab-panel">
+                <div class="list-container">
+                    <h2>Mes documents enregistrés</h2>
+                    
+                    <div class="list-controls">
+                        <input type="text" id="search-input" placeholder="Rechercher..." class="search-input">
+                        <button id="refresh-button" class="btn btn-secondary">🔄 Actualiser</button>
+                    </div>
+
+                    <div id="documents-list" class="documents-list">
+                        <!-- Documents will be loaded here -->
+                    </div>
+
+                    <div id="loading-indicator" class="loading-indicator hidden">
+                        <div class="spinner"></div>
+                        <span>Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <p>&copy; 2024 OpenDocSeal - Notarisation numérique sécurisée</p>
+    </footer>
+
+    <!-- Load components -->
+    <div id="components-container" class="hidden"></div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/api-client.js"></script>
+    <script src="js/file-handler.js"></script>
+    <script src="js/metadata-editor.js"></script>
+    <script src="js/document-list.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

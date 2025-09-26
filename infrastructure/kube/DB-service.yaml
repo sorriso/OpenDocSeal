@@ -1,0 +1,14 @@
+# File: OpenDocSeal/infrastructure/kube/DB-service.yaml
+# Version: 1
+apiVersion: v1
+kind: Service
+metadata:
+  name: opendocseal-mongo
+spec:
+  selector:
+    app: opendocseal-mongo
+  ports:
+  - protocol: TCP
+    port: 27017
+    targetPort: 27017
+  clusterIP: None   # headless service

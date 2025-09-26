@@ -1,0 +1,160 @@
+# Caddyfile - OpenDocSeal Reverse Proxy Configuration (Fixed)
+# Path: infrastructure/images/rp/Caddyfile
+# Version: Fixed - Core Caddy directives only
+
+{
+    # Global options
+    admin 0.0.0.0:2019
+    # Remove email for local dev - add back for production with real domain
+    # email admin@opendocseal.com
+}
+
+# Listen on port 8000 (matching Kubernetes deployment)
+:8000 {
+    
+    # Health check endpoints for Kubernetes probes
+    handle /healthz {
+        header Content-Type "text/plain"
+        respond "OK" 200
+    }
+    
+    handle /readiness {
+        header Content-Type "text/plain"
+        respond "Ready" 200
+    }
+    
+    # API Routes - Forward to FastAPI container
+    handle_path /api/v1/* {
+        # Security headers for API
+        header {
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "DENY"
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization, X-Request-ID"
+            -Server
+        }
+        
+        # Handle CORS preflight
+        @options {
+            method OPTIONS
+        }
+        respond @options 204
+        
+        # Forward to API container
+        reverse_proxy opendocseal-api-service:8000 {
+            # Preserve original request info
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote.host}
+            header_up X-Forwarded-For {http.request.remote.host}
+            header_up X-Forwarded-Proto {http.request.scheme}
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+
+    # Static assets routing
+    handle /assets/* {
+        # Static assets caching
+        header Cache-Control "public, max-age=31536000, immutable"
+        
+        # Compression
+        encode gzip
+        
+        # Forward to app container  
+        reverse_proxy opendocseal-app-service:8001 {
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote.host}
+            header_up X-Forwarded-For {http.request.remote.host}
+        }
+    }
+    
+    # Document verification route
+    handle /verify/* {
+        # Forward to app container for frontend handling
+        reverse_proxy opendocseal-app-service:8001 {
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote.host}
+            header_up X-Forwarded-For {http.request.remote.host}
+        }
+    }
+
+    # Admin routes (basic auth protection)
+    handle /admin/* {
+        # Note: For production, configure proper authentication
+        # basicauth {
+        #     admin JDJhJDE0JGVuY3J5cHRlZF9wYXNzd29yZF9oYXNo
+        # }
+        
+        # Strip /admin prefix and forward based on sub-path
+        @n8n path_regexp ^/admin/n8n/(.*)$
+        handle @n8n {
+            uri strip_prefix /admin/n8n
+            reverse_proxy opendocseal-tsk-service:5678
+        }
+        
+        @minio_console path_regexp ^/admin/minio/(.*)$
+        handle @minio_console {
+            uri strip_prefix /admin/minio
+            reverse_proxy opendocseal-str-service:9001 {
+                header_up Host {http.request.host}
+                header_up X-Real-IP {http.request.remote.host}
+                header_up X-Forwarded-For {http.request.remote.host}
+                header_up X-Forwarded-Proto {http.request.scheme}
+            }
+        }
+        
+        # Default admin response
+        respond "Admin access - configure authentication" 401
+    }
+
+    # Default route - Forward to Frontend (SPA)
+    handle {
+        # Security headers
+        header {
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "DENY"
+            X-XSS-Protection "1; mode=block"
+            Referrer-Policy "strict-origin-when-cross-origin"
+            -Server
+        }
+        
+        # SPA optimization headers
+        header Cache-Control "no-cache, no-store, must-revalidate"
+        
+        # Compression for HTML/CSS/JS
+        encode gzip
+        
+        # Forward to app container
+        reverse_proxy opendocseal-app-service:8001 {
+            # Headers
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote.host}
+            header_up X-Forwarded-For {http.request.remote.host}
+            header_up X-Forwarded-Proto {http.request.scheme}
+        }
+    }
+
+    # Access logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10MB
+            roll_keep 5
+        }
+        format json
+    }
+
+    # Error handling
+    handle_errors {
+        @404 {
+            expression {http.error.status_code} == 404
+        }
+        
+        @5xx {
+            expression {http.error.status_code} >= 500
+        }
+        
+        # Simple error responses for now
+        respond @404 "Not Found" 404
+        respond @5xx "Server Error" 500
+    }
+}

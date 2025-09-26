@@ -1,0 +1,54 @@
+# File: OpenDocSeal/infrastructure/kube/APP-configmap.yaml
+# Version: 1
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opendocseal-app-config
+data:
+  Caddyfile: |
+    :8001 {
+      # Static file serving
+      root * /usr/share/caddy
+      try_files {path} /index.html
+      file_server
+      
+      # Access logs - HTTP requests
+      log {
+        output file /var/log/caddy/access.log {
+          roll_size 10MB
+          roll_keep 5
+          roll_keep_for 720h
+        }
+        format single_field common_log
+      }
+      
+      # Error handling with logging
+      handle_errors {
+        respond "Error {http.error.status_code}: {http.error.status_text}" {http.error.status_code}
+        log {
+          output file /var/log/caddy/error.log {
+            roll_size 5MB
+            roll_keep 3
+            roll_keep_for 168h
+          }
+          level ERROR
+        }
+      }
+      
+      # Health check endpoint (no logging)
+      handle /health {
+        respond "OK" 200
+      }
+    }
+    
+    # Global error log (fallback)
+    {
+      log {
+        output file /var/log/caddy/global-error.log {
+          roll_size 5MB
+          roll_keep 2
+          roll_keep_for 72h
+        }
+        level WARN
+      }
+    }
